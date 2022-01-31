@@ -26,12 +26,14 @@ public class TestsWorkingTest {
     public void testAsserts() {
         Assert.assertTrue(true);
     }
+
     @Test
     public void testMockitoSpy() {
         Foo f = Mockito.spy(new Foo());
         f.foo();
         Mockito.verify(f).foo();
     }
+
     @Test
     public void testMockitoMock() {
         Foo f = Mockito.mock(Foo.class);
