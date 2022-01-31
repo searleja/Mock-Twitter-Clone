@@ -14,6 +14,7 @@ public class StoryPresenter {
 
     private static final int PAGE_SIZE = 10;
 
+
     public interface View {
         void displayErrorMessage(String message);
 
