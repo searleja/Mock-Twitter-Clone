@@ -37,7 +37,7 @@ import edu.byu.cs.tweeter.model.domain.User;
 /**
  * The main activity for the application. Contains tabs for feed, story, following, and followers.
  */
-public class MainActivity extends AppCompatActivity implements StatusDialogFragment.Observer, MainPresenter.View {
+public class MainActivity extends AppCompatActivity implements StatusDialogFragment.Observer, MainPresenter.MainView {
 
     private static final String LOG_TAG = "MainActivity";
 
@@ -149,7 +149,8 @@ public class MainActivity extends AppCompatActivity implements StatusDialogFragm
 
     @Override
     public void displayMessage(String message) {
-        Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show();
+        postingToast = Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG);
+        postingToast.show();
     }
 
     @Override
@@ -174,11 +175,6 @@ public class MainActivity extends AppCompatActivity implements StatusDialogFragm
         followButton.setEnabled(true);
     }
 
-    @Override
-    public void updateFollowBtn(boolean isFollowing) {
-        updateFollowButton(!isFollowing);
-    }
-
     public void logoutUser() {
         //Revert to login screen.
         Intent intent = new Intent(this, LoginActivity.class);
@@ -191,9 +187,6 @@ public class MainActivity extends AppCompatActivity implements StatusDialogFragm
 
     @Override
     public void onStatusPosted(String post) {
-        postingToast = Toast.makeText(this, "Posting Status...", Toast.LENGTH_LONG);
-        postingToast.show();
-
         try {
             Status newStatus = new Status(post, Cache.getInstance().getCurrUser(), getFormattedDateTime(), parseURLs(post), presenter.parseMentions(post));
             postingToast.cancel();
@@ -238,5 +231,4 @@ public class MainActivity extends AppCompatActivity implements StatusDialogFragm
             followButton.setTextColor(getResources().getColor(R.color.lightGray));
         }
     }
-
 }

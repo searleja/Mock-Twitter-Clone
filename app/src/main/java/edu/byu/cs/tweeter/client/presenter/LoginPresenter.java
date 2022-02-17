@@ -2,25 +2,16 @@ package edu.byu.cs.tweeter.client.presenter;
 
 import android.widget.EditText;
 
-import edu.byu.cs.tweeter.client.model.service.UserService;
-import edu.byu.cs.tweeter.model.domain.AuthToken;
-import edu.byu.cs.tweeter.model.domain.User;
+import edu.byu.cs.tweeter.client.presenter.viewInterfaces.AuthView;
 
 
-public class LoginPresenter {
+public class LoginPresenter extends SimplePresenter {
 
-    public interface View {
-        void loginSuccessful(User user, AuthToken authToken);
+    private AuthView view;
 
-        void displayMessage(String message);
-    }
-
-    private View view;
-    private UserService userService;
-
-    public LoginPresenter(View view) {
+    public LoginPresenter(AuthView view) {
+        super(view);
         this.view = view;
-        userService = new UserService();
     }
 
     public void validateLogin(EditText username, EditText password) {
@@ -36,25 +27,11 @@ public class LoginPresenter {
     }
 
     public void InitiateLogin(String username, String password) {
-        userService.login(username, password, new LoginObserver());
+        getUserService().login(username, password, new AuthObserver(view));
     }
 
-    public class LoginObserver implements UserService.LoginObserver {
-
-        @Override
-        public void handleSuccess(User user, AuthToken authToken) {
-            view.displayMessage("Hello " + user.getName());
-            view.loginSuccessful(user, authToken);
-        }
-
-        @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to login: " + message);
-        }
-
-        @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to login because of exception: " + exception.getMessage());
-        }
+    @Override
+    public String getDescription() {
+        return "login";
     }
 }

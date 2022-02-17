@@ -1,20 +1,22 @@
 package edu.byu.cs.tweeter.client.presenter;
 
+import static edu.byu.cs.tweeter.client.model.service.backgroundTask.GetCountTask.COUNT_KEY;
+import static edu.byu.cs.tweeter.client.model.service.backgroundTask.IsFollowerTask.IS_FOLLOWER_KEY;
+
+import android.os.Bundle;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import edu.byu.cs.tweeter.client.cache.Cache;
-import edu.byu.cs.tweeter.client.model.service.FollowService;
-import edu.byu.cs.tweeter.client.model.service.StatusService;
-import edu.byu.cs.tweeter.client.model.service.UserService;
+import edu.byu.cs.tweeter.client.model.service.observer.SimpleObserver;
+import edu.byu.cs.tweeter.client.presenter.viewInterfaces.View;
 import edu.byu.cs.tweeter.model.domain.Status;
 import edu.byu.cs.tweeter.model.domain.User;
 
-public class MainPresenter {
+public class MainPresenter extends Presenter {
 
-    public interface View {
-        void displayMessage(String message);
-
+    public interface MainView extends View {
         void logout();
 
         void updateFollowerCount(int count);
@@ -22,23 +24,16 @@ public class MainPresenter {
         void updateFollowingCount(int count);
 
         void updateFollowing(boolean updateButton);
-
-        void updateFollowBtn(boolean isFollowing);
     }
 
-    private View view;
+    private MainView mainView;
     private User selectedUser;
 
-    private FollowService followService;
-    private UserService userService;
-    private StatusService statusService;
 
-    public MainPresenter(View view, User selectedUser) {
-        this.view = view;
+    public MainPresenter(MainView mainView, User selectedUser) {
+        super(mainView);
+        this.mainView = mainView;
         this.selectedUser = selectedUser;
-        followService = new FollowService();
-        userService = new UserService();
-        statusService = new StatusService();
     }
 
     public int findUrlEndIndex(String word) {
@@ -83,140 +78,157 @@ public class MainPresenter {
     }
 
     public void logout() {
-        userService.logout(new LogoutObserver(), Cache.getInstance().getCurrUserAuthToken());
+        getUserService().logout(new LogoutObserver(mainView), Cache.getInstance().getCurrUserAuthToken());
     }
 
     public void updateSelectedUserFollowingAndFollowers() {
-        followService.updateSelectedUserFollowingAndFollowers(selectedUser, Cache.getInstance().getCurrUserAuthToken(),
-                new GetFollowersCountObserver(), new GetFollowingCountObserver());
+        getFollowService().updateSelectedUserFollowingAndFollowers(selectedUser, Cache.getInstance().getCurrUserAuthToken(),
+                new GetFollowersCountObserver(mainView), new GetFollowingCountObserver(mainView));
     }
 
     public void follow(boolean isFollowing) {
-        followService.follow(selectedUser, Cache.getInstance().getCurrUserAuthToken(), new ChangeFollowingObserver(), isFollowing);
+        if (!isFollowing)
+            getFollowService().follow(selectedUser, Cache.getInstance().getCurrUserAuthToken(), new FollowObserver(mainView), isFollowing);
+        else
+            getFollowService().follow(selectedUser, Cache.getInstance().getCurrUserAuthToken(), new UnfollowObserver(mainView), isFollowing);
     }
 
     public void isFollowerTask() {
-        followService.isFollowerTask(Cache.getInstance().getCurrUser(), selectedUser,
-                Cache.getInstance().getCurrUserAuthToken(), new IsFollowerObserver());
+        getFollowService().isFollowerTask(Cache.getInstance().getCurrUser(), selectedUser,
+                Cache.getInstance().getCurrUserAuthToken(), new IsFollowerObserver(mainView));
     }
 
     public void postStatus(Status newStatus) {
-        statusService.postStatus(Cache.getInstance().getCurrUserAuthToken(), newStatus, new PostStatusObserver());
+        view.displayMessage("Posting Status...");
+        getStatusService().postStatus(Cache.getInstance().getCurrUserAuthToken(), newStatus, new PostStatusObserver(mainView));
     }
 
-    public class LogoutObserver implements UserService.LogoutObserver {
-
-        @Override
-        public void handleSuccess() {
-            view.logout();
-        }
-
-        @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to logout: " + message);
-        }
-
-        @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to logout because of exception: " + exception.getMessage());
-        }
+    @Override
+    public String getDescription() {
+        return null;
     }
 
-    public class GetFollowersCountObserver implements FollowService.GetFollowersCountObserver {
+    public class LogoutObserver extends SimpleObserver {
 
-        @Override
-        public void handleSuccess(int count) {
-            view.updateFollowerCount(count);
+        public LogoutObserver(View view) {
+            super(view);
         }
 
         @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to get followers count: " + message);
+        public void handleSuccess(Bundle data) {
+            mainView.logout();
         }
 
         @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to get followers count because of exception: " + exception.getMessage());
+        public String getDescription() {
+            return "logout";
         }
     }
 
-    public class GetFollowingCountObserver implements FollowService.GetFollowingCountObserver {
+    public class GetFollowersCountObserver extends SimpleObserver {
 
-        @Override
-        public void handleSuccess(int count) {
-            view.updateFollowingCount(count);
+        public GetFollowersCountObserver(View view) {
+            super(view);
         }
 
         @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to get following count: " + message);
+        public void handleSuccess(Bundle data) {
+            int count = data.getInt(COUNT_KEY);
+            mainView.updateFollowerCount(count);
         }
 
         @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to get following count because of exception: " + exception.getMessage());
-        }
-    }
-
-    public class ChangeFollowingObserver implements FollowService.ChangeFollowingObserver {
-
-        @Override
-        public void handleSuccess(boolean updateButton) {
-            followService.updateSelectedUserFollowingAndFollowers(selectedUser, Cache.getInstance().getCurrUserAuthToken(),
-                    new GetFollowersCountObserver(), new GetFollowingCountObserver());
-            view.updateFollowing(updateButton);
-        }
-
-        @Override
-        public void handleFailure(String message, boolean updateButton) {
-            if (updateButton)
-                view.displayMessage("Failed to unfollow: " + message);
-            else
-                view.displayMessage("Failed to follow: " + message);
-        }
-
-        @Override
-        public void handleException(Exception exception, boolean updateButton) {
-            if (updateButton)
-                view.displayMessage("Failed to unfollow because of exception: " + exception.getMessage());
-            else
-                view.displayMessage("Failed to follow because of exception: " + exception.getMessage());
+        public String getDescription() {
+            return "get followers count";
         }
     }
 
-    public class IsFollowerObserver implements FollowService.IsFollowerObserver {
+    public class GetFollowingCountObserver extends SimpleObserver {
 
-        @Override
-        public void handleSuccess(boolean isFollower) {
-            view.updateFollowing(isFollower);
+        public GetFollowingCountObserver(View view) {
+            super(view);
         }
 
         @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to determine following relationship: " + message);
+        public void handleSuccess(Bundle data) {
+            int count = data.getInt(COUNT_KEY);
+            mainView.updateFollowingCount(count);
         }
 
         @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to determine following relationship because of exception: " + exception.getMessage());
+        public String getDescription() {
+            return "get following count";
         }
     }
 
-    public class PostStatusObserver implements StatusService.PostStatusObserver {
+    public class UnfollowObserver extends SimpleObserver {
 
-        @Override
-        public void handleSuccess(String message) {
-            view.displayMessage(message);
+        public UnfollowObserver(View view) {
+            super(view);
         }
 
         @Override
-        public void handleFailure(String message) {
-            view.displayMessage("Failed to post status: " + message);
+        public void handleSuccess(Bundle data) {
+            updateSelectedUserFollowingAndFollowers();
+            mainView.updateFollowing(true);
         }
 
         @Override
-        public void handleException(Exception exception) {
-            view.displayMessage("Failed to post status because of exception: " + exception.getMessage());
+        public String getDescription() {
+            return "unfollow";
+        }
+    }
+
+    public class FollowObserver extends SimpleObserver {
+
+        public FollowObserver(View view) {
+            super(view);
+        }
+
+        @Override
+        public void handleSuccess(Bundle data) {
+            updateSelectedUserFollowingAndFollowers();
+            mainView.updateFollowing(false);
+        }
+
+        @Override
+        public String getDescription() {
+            return "follow";
+        }
+    }
+
+    public class IsFollowerObserver extends SimpleObserver {
+
+        public IsFollowerObserver(View view) {
+            super(view);
+        }
+
+        @Override
+        public void handleSuccess(Bundle data) {
+            boolean isFollower = data.getBoolean(IS_FOLLOWER_KEY);
+            mainView.updateFollowing(isFollower);
+        }
+
+        @Override
+        public String getDescription() {
+            return "determine following relationship";
+        }
+    }
+
+    public class PostStatusObserver extends SimpleObserver {
+
+        public PostStatusObserver(View view) {
+            super(view);
+        }
+
+        @Override
+        public String getDescription() {
+            return "post status";
+        }
+
+        @Override
+        public void handleSuccess(Bundle data) {
+            mainView.displayMessage("Successfully Posted!");
         }
     }
 }

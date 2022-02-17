@@ -23,13 +23,14 @@ import java.util.Base64;
 
 import edu.byu.cs.client.R;
 import edu.byu.cs.tweeter.client.presenter.RegisterPresenter;
+import edu.byu.cs.tweeter.client.presenter.viewInterfaces.AuthView;
 import edu.byu.cs.tweeter.client.view.main.MainActivity;
 import edu.byu.cs.tweeter.model.domain.User;
 
 /**
  * Implements the register screen.
  */
-public class RegisterFragment extends Fragment implements RegisterPresenter.View {
+public class RegisterFragment extends Fragment implements AuthView {
     private static final String LOG_TAG = "RegisterFragment";
     private static final int RESULT_IMAGE = 10;
 
@@ -122,14 +123,9 @@ public class RegisterFragment extends Fragment implements RegisterPresenter.View
         }
     }
 
-    @Override
-    public void displayMessage(String message) {
-        registeringToast.cancel();
-        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
-    }
 
     @Override
-    public void RegisterSuccessful(User user) {
+    public void taskSucceeded(User user) {
         Intent intent = new Intent(getContext(), MainActivity.class);
         intent.putExtra(MainActivity.CURRENT_USER_KEY, user);
         try {
@@ -139,5 +135,9 @@ public class RegisterFragment extends Fragment implements RegisterPresenter.View
         }
     }
 
-
+    @Override
+    public void displayMessage(String message) {
+        registeringToast.cancel();
+        Toast.makeText(getContext(), message, Toast.LENGTH_LONG).show();
+    }
 }
