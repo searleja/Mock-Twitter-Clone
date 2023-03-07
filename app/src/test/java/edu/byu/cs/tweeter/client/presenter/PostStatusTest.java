@@ -1,13 +1,17 @@
 package edu.byu.cs.tweeter.client.presenter;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import android.os.Bundle;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import android.os.Bundle;
-
+import edu.byu.cs.tweeter.client.cache.Cache;
 import edu.byu.cs.tweeter.client.model.service.StatusService;
 import edu.byu.cs.tweeter.model.domain.AuthToken;
 import edu.byu.cs.tweeter.model.domain.Status;
@@ -32,6 +36,7 @@ public class PostStatusTest {
     }
 
     private void messagesTest(Answer<Void> answer, String message) {
+        Cache.getInstance().setCurrUserAuthToken(new AuthToken());
         //Mockito.doAnswer(answer).when(mockStatusService).postStatus(Mockito.isA(AuthToken.class), Mockito.isA(Status.class), Mockito.isA(MainPresenter.PostStatusObserver.class));
         Mockito.doAnswer(answer).when(mockStatusService).postStatus(Mockito.any(), Mockito.any(), Mockito.any());
 
@@ -46,7 +51,13 @@ public class PostStatusTest {
         Answer<Void> answer = new Answer<>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
+                assertTrue(invocation.getArgument(0) instanceof AuthToken);
+                assertTrue(invocation.getArgument(1) instanceof Status);
+                assertNotNull(invocation.getArgument(2));
+
+
                 MainPresenter.PostStatusObserver observer = invocation.getArgument(2, MainPresenter.PostStatusObserver.class);
+
                 observer.handleSuccess(new Bundle());
                 return null;
             }
@@ -61,7 +72,14 @@ public class PostStatusTest {
         Answer<Void> answer = new Answer<>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
+                assertTrue(invocation.getArgument(0) instanceof AuthToken);
+                assertTrue(invocation.getArgument(1) instanceof Status);
+                assertNotNull(invocation.getArgument(2));
+
+
+
                 MainPresenter.PostStatusObserver observer = invocation.getArgument(2, MainPresenter.PostStatusObserver.class);
+
                 observer.handleFailure("the error message");
                 return null;
             }
@@ -75,7 +93,13 @@ public class PostStatusTest {
         Answer<Void> answer = new Answer<>() {
             @Override
             public Void answer(InvocationOnMock invocation) throws Throwable {
+                assertTrue(invocation.getArgument(0) instanceof AuthToken);
+                assertTrue(invocation.getArgument(1) instanceof Status);
+                assertNotNull(invocation.getArgument(2));
+
+
                 MainPresenter.PostStatusObserver observer = invocation.getArgument(2, MainPresenter.PostStatusObserver.class);
+
                 observer.handleException(new Exception("the exception message"));
                 return null;
             }
